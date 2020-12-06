@@ -1,0 +1,14 @@
+baseURL = "https://flow.visionhope.cn"
+defaultContentLanguage = "zh-cn"
+languageCode = "zh-CN"
+hasCJKLanguage = true
+title = "自闭者的喃喃"
+theme = "LoveIt"
+
+
+[author]
+name  = "Vision"
+
+
+[params]
+version = "0.2.X"               # LoveIt 主题版本

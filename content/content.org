@@ -1,0 +1,288 @@
+#+HUGO_BASE_DIR: ~/prjs/flow
+#+OPTIONS: author:nil
+
+* Posts
+
+** DONE 实现一个 Gin 的 XSS 中间件
+CLOSED: [2021-01-04 一 20:32]
+:PROPERTIES:
+:export_file_name: implement-a-xss-middleware-for-gin
+:END:
+
+*** 前言
+本着造轮子不如用轮子的心态, 当然是搜一搜网上有没有现成的轮子了, 找了好大一圈发现只有一个
+轮子 =XssMw=[fn:59](17 stars). 然后大概扫了一眼这个项目的代码, 还是蛮简单的, 注释也比较丰富,
+但是代码里面有很多用于调试的 ~fmt.Printf~, 作为一个有代码洁癖的人, 肯定是受不了这个. 而
+且这个项目好像很久没有更新了, 差不多有一年了, 所以就决定自己造轮子了.
+
+XssMw 底层是使用的 =bluemonday=[fn:60] 这个库来过滤字符串, 本身只是做了一个解析请求, 再
+过滤的操作. 看了下 =bluemonday= 有 1.7k stars, 库质量应该还是不错的. 所以我的思路和
+=XssMw= 一致, 但尽量简化代码.
+
+[fn:59] [[https://github.com/dvwright/xss-mw][GitHub - dvwright/xss-mw: XssMw is an middleware designed to "auto remove XSS...]]
+
+[fn:60] [[https://github.com/microcosm-cc/bluemonday][GitHub - microcosm-cc/bluemonday: bluemonday: a fast golang HTML sanitizer (i...]]
+
+*** 基本思路
+基本思路就是先将请求参数进行解析, 然后对解析后里的字符串进行过滤, 过滤之后, 再重新组装成请
+求参数.
+
+[[https://i.loli.net/2021/01/04/L38ChAV7vMPQfqS.png][gin-xss-flow.png]]
+
+#+begin_src plantuml :file /tmp/gin-xss-flow.png :exports none
+  skinparam handwritten true
+
+  start
+  :反序列化;
+  note right
+          解析请求参数, 请求体
+  end note
+
+  :过滤;
+  note right
+          对字符内容
+  end note
+
+  :序列化;
+  note right
+          重新生成请求参数, 请求体
+  end note
+  stop
+#+end_src
+
+#+RESULTS:
+[[file:/tmp/gin-xss-flow.png]]
+
+*** 参数解析
+参数解析算是整个中间件里面最麻烦的事情了, 对于一些纯文本的参数来说就比较简单, 直接过滤就
+行了. 但是对于 =JSON=, =MessagePack= 这种序列化格式来说就比较麻烦, 就需要先反序列化一下.
+
+**** Plain Text
+直接使用 =bluemonday= 过滤就行了. 因为 =bluemonday= 会进行 =HTML= 转义(写死在代码里面,
+不可配置), 需要反转一下, 不过这里也有一个风险点, 如果输入里面包含了转义字符, 也会被转义.
+
+#+begin_src go
+  func FilterPlain(p *bluemonday.Policy, s string) string {
+      sanitized := p.Sanitize(s)
+      return html.UnescapeString(sanitized)
+  }
+#+end_src
+
+**** JSON 解析
+表面上 =Go= 里面解析 =JSON= 不像动态语言那样方便, 需要先定义类型. 但是别忘了, =Go= 里面
+也有万能的 =interface{}=, 直接看代码:
+
+#+begin_src go
+  func FilterJSON(p *bluemonday.Policy, s string) (string, error) {
+      var data interface{}
+      err := json.Unmarshal([]byte(s), &data)
+      if err != nil {
+          return "", err
+      }
+
+      b := strings.Builder{}
+      e := json.NewEncoder(&b)
+      e.SetEscapeHTML(false)
+      err = e.Encode(filterJSONData(p, data))
+      if err != nil {
+          return "", err
+      }
+      // use `TrimSpace` to trim newline char add by `Encode`.
+      return strings.TrimSpace(b.String()), nil
+  }
+
+  func filterJSONData(p *bluemonday.Policy, data interface{}) interface{} {
+      if s, ok := data.([]interface{}); ok {
+          for i, v := range s {
+              s[i] = filterJSONData(p, v)
+          }
+          return s
+      } else if m, ok := data.(map[string]interface{}); ok {
+          for k, v := range m {
+              m[k] = filterJSONData(p, v)
+          }
+          return m
+      } else if str, ok := data.(string); ok {
+          return FilterPlain(p, str)
+      }
+      return data
+  }
+#+end_src
+
+**** Form 解析
+=GET= 形式的 form 和 =POST= 形式的 form 本质一样, 只是一个放在 =URL= 里的, 一个放在
+=Request Body= 里面的.
+
+#+begin_src go
+  func FilterQuery(p *bluemonday.Policy, s string) (string, error) {
+      values, err := url.ParseQuery(s)
+      if err != nil {
+          return "", err
+      }
+
+      for k, v := range values {
+          values.Del(k)
+          for _, vv := range v {
+              values.Add(k, XSSFilterPlain(p, vv))
+          }
+      }
+
+      return values.Encode(), nil
+  }
+#+end_src
+
+**** Multipart Form 解析
+Multipart form 是类似下面这种的结构, 我们可以直接当成纯文本解析即可.
+
+#+begin_example
+
+  ------WebKitFormBoundaryAXJUb5Hid7KfCup1
+  Content-Disposition: form-data; name="f=>&name"
+
+  fdsf
+  ------WebKitFormBoundaryAXJUb5Hid7KfCup1
+  Content-Disposition: form-data; name="lname"
+
+  jack
+  ------WebKitFormBoundaryAXJUb5Hid7KfCup1--
+#+end_example
+
+**** Gin 中间件
+完成了上面这些, 编写中间件就简单了, 参考 =gin.Context.ShouldBind()= 的实现, 根据
+Content-Type 对请求体进行解析. 对于一些用户登录等包含密码的场景, 这个中间件还需要提供白
+名单的机制. 对在白名单中的 URL 不进行过滤.
+
+#+begin_src go
+  func XSS(whitelistURLs []string) gin.HandlerFunc {
+      // Do this once for each unique policy, and use the policy for the life of the
+      // program Policy creation/editing is not safe to use in multiple goroutines.
+      p := bluemonday.UGCPolicy()
+
+      return func(c *gin.Context) {
+          for _, u := range whitelistURLs {
+              if strings.HasPrefix(c.Request.URL.String(), u) {
+                  c.Next()
+                  return
+              }
+          }
+
+          sanitizedQuery, err := FilterQuery(p, c.Request.URL.RawQuery)
+          if err != nil {
+              err = errors.Wrap(err, "filter query")
+              c.Error(err)
+              c.Abort()
+              return
+          }
+          c.Request.URL.RawQuery = sanitizedQuery
+
+          var sanitizedBody string
+          body, err := c.GetRawData()
+          if err != nil {
+              err = errors.Wrap(err, "read body")
+              c.Error(err)
+              c.Abort()
+              return
+          }
+
+          // FilterJSON() will return error when body is empty.
+          if len(body) == 0 {
+              c.Next()
+              return
+          }
+
+          // TODO Use mime.ParseMediaType
+          switch c.ContentType() {
+          case "application/json":
+              sanitizedBody, err = FilterJSON(p, string(body))
+              err = errors.Wrap(err, "filter json")
+          case "application/x-www-form-urlencoded":
+              sanitizedBody, err = FilterQuery(p, string(body))
+              err = errors.Wrap(err, "filter form")
+          default:
+              // Some HTTP handler use ShouldBindJSON method to get data. If a hacker use
+              // different content type to request this API, it will succeed.
+              // Thus we filter all other content here, including binary data.
+              sanitizedBody = FilterPlain(p, string(body))
+          }
+
+          if err != nil {
+              c.Error(err)
+              c.Abort()
+              return
+          }
+          c.Request.Body = ioutil.NopCloser(strings.NewReader(sanitizedBody))
+
+          c.Next()
+      }
+  }
+#+end_src
+
+*** 总结
+这个简单的 XSS 中间件总共也就 100 多行代码, 相比 =XssMw= 的 600 多行少了很多, 不过基本功
+能差别不大, 有以下几点可以继续优化.
+
+1. 更强大的白名单过滤, 支持类似 =/posts/{id}/comments= URL
+2. 解决纯文本过滤中的 =HTML= 转义问题.
+3. 支持 =XML=, =MessagePack= 格式
+
+
+** DONE 锟斤拷之谜
+CLOSED: [2021-04-11 日 16:17]
+:PROPERTIES:
+:export_file_name: mysterious-of-kunjinkao
+:header-args: :results output :exports both
+:END:
+
+*** 前言
+前段时间一位同学在群里问, 为什么他在 Windows 写的 matlab 代码在 Linux 下运行输出的日志文
+件显示乱码了. 我把他发过来的日志文件用 utf8 编码打开, 出现了问号, 再用 gbk 编码打开, 就
+出现了 "锟斤拷" 字样. 看到这三个字, 大概就知道是编码的问题了, 很常见.
+
+*** 原因
+经过反复实验以及网上查阅资料, 大概弄清楚了原因, 可以参考以下代码:
+
+#+begin_src py
+  words = "一些文字"
+  print(f"original text: {words}")
+
+  utf8_decoded = words.encode("gbk").decode(errors="replace")
+  print(f"decode gbk encoded bytes with utf8: {utf8_decoded}")
+
+  gbk_decoded = utf8_decoded.encode().decode("gbk")
+  print(f"re-encode with utf8 and decode with gbk: {gbk_decoded}")
+#+end_src
+
+#+RESULTS:
+: original text: 一些文字
+: decode gbk encoded bytes with utf8: һЩ����
+: re-encode with utf8 and decode with gbk: 一些锟斤拷锟斤拷
+
+我们先把一个中文字符串用 gbk 编码, 再用 utf8 解码, 这时就会就会出现问号, 接着, 再把这些
+有问号的字符串用 utf8 编码, 接着 gbk 解码, 就会出现 "锟斤拷" 字样.
+
+日志文件出现乱码的原因也就清楚了: 在 Winodws 上编写的代码格式是 gbk 的, 但是在 Linux 上
+运行的时候是以 utf8 格式打开, 导致有部分无法解析的字节就变成了问号, 打印日志的时候就直接
+把问号打印出来了. 我们再用 gbk 打开, 就变成了 "锟斤拷".
+
+*** 扩展
+编码中出现的 "�" 是 Unicode 中一个特殊字符, 叫做 replacement character, 码位(code point)
+是 U+FFFD. 两个问号就可以解码成 gbk 中的 "锟斤拷", 代码:
+
+#+begin_src py
+  two_replace_chars = '\uFFFD'.encode() * 2
+  print(two_replace_chars)
+  print(two_replace_chars.decode())
+  print(two_replace_chars.decode('gbk'))
+#+end_src
+
+#+RESULTS:
+: b'\xef\xbf\xbd\xef\xbf\xbd'
+: ��
+: 锟斤拷
+
+如果想要深入了解字符编码的相关知识, 推荐阅读: [[https://liyucang-git.github.io/2019/06/17/%E5%BD%BB%E5%BA%95%E5%BC%84%E6%87%82Unicode%E7%BC%96%E7%A0%81/][彻底弄懂 Unicode编码 - 李宇仓 | Li Yucang]]
+
+*** 参考链接
+- [[https://docs.python.org/3/howto/unicode.html][Unicode HOWTO — Python 3.9.4 documentation]]
+- [[https://www.zhihu.com/question/23024782/answer/36719691][锟斤拷是什么？ - 舰长的回答 - 知乎]]
+- [[https://baike.baidu.com/item/%E9%94%9F%E6%96%A4%E6%8B%B7][锟斤拷_百度百科]]

@@ -12,3 +12,7 @@ name  = "Vision"
 
 [params]
 version = "0.2.X"               # LoveIt 主题版本
+
+
+[markup.highlight]
+noClasses = false

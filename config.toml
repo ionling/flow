@@ -16,3 +16,13 @@ version = "0.2.X"               # LoveIt 主题版本
 
 [markup.highlight]
 noClasses = false
+
+[[menu.main]]
+name = '文章'
+identifier = 'posts'
+url = '/posts/'
+
+[[menu.main]]
+name = '笔记'
+identifier = 'notes'
+url = '/notes/'

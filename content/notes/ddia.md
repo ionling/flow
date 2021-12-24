@@ -1,7 +1,7 @@
 +++
 title = "DDIA"
 date = 2021-12-15T00:00:00+08:00
-lastmod = 2021-12-15T11:20:08+08:00
+lastmod = 2021-12-24T10:51:48+08:00
 draft = false
 +++
 
@@ -61,3 +61,17 @@ draft = false
 >
 > 尽管本章不能让你成为一个特定存储引擎的调参专家，但它至少大概率使你有了足够的概念与词汇储
 > 备去读懂你所选择的数据库的文档。
+
+
+#### Chap 4 编码与演化 {#chap-4-编码与演化}
+
+这一章主要讲了数据的编码格式, 语言内置的编码 (Python 的 pickle, Golang 的 gob 之类的),
+更通用的格式 (JSON, XML...), 还有二进制编码 (MessagePack, Thrift, Protocol Buffers...),
+以及如何实现向前向后兼容 (这部分仔细讲解了 Thrift, Protocol Buffers 和 Avro 的编码格式).
+
+还有数据流的几种类型 (数据库, RPC, 消息传递), 看完这里你就会明白为什么上有人用消息队列实
+现 RPC[^fn:1], 还有 Event Sourcing 的概念, 本质都是数据. 说数据的怎么又说到 RPC 去了, 只
+能说 RPC 是也是数据交流的方式, 再延伸一下, 程序等于数据加算法, 这里的数据涵盖到编程的方
+方面面也正常.
+
+[^fn:1]: [使用 RabbitMQ 实现 RPC - 小芳芳的文章 - 知乎](https://zhuanlan.zhihu.com/p/48230422)

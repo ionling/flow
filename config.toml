@@ -5,7 +5,6 @@ hasCJKLanguage = true
 title = "自闭者的喃喃"
 theme = "LoveIt"
 
-
 [author]
 name  = "Vision"
 
@@ -13,6 +12,12 @@ name  = "Vision"
 [params]
 version = "0.2.X"               # LoveIt 主题版本
 
+[params.analytics]
+enable = true
+
+[params.analytics.google]
+id = "G-PG2EZ3Q1QT"
+anonymizeIP = true # 是否匿名化用户 IP
 
 [markup.highlight]
 noClasses = false

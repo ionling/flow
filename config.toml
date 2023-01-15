@@ -31,3 +31,8 @@ url = '/posts/'
 name = '笔记'
 identifier = 'notes'
 url = '/notes/'
+
+[[menu.main]]
+name = '评论'
+identifier = 'reviews'
+url = '/reviews/'

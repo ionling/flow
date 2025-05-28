@@ -3,7 +3,7 @@ defaultContentLanguage = "zh-cn"
 hasCJKLanguage = true
 theme = "LoveIt"
 
-[author]
+[params.author]
 name = "Vision"
 
 [languages.zh-cn]
@@ -51,7 +51,7 @@ url = "/posts/"
 
 
 [params]
-version = "0.2.X"               # LoveIt 主题版本
+version = "0.3.0" # LoveIt 主题版本
 
 [params.analytics]
 enable = true

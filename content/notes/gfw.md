@@ -61,17 +61,14 @@ Climbing over the Great Firewall is my life.
 
 #### GUI {#gui}
 
-<!--list-separator-->
 
 -  Dashboard
 
     -   [Linux安装Clash - 福星的文章 - 知乎](https://zhuanlan.zhihu.com/p/396272999)
 
-<!--list-separator-->
 
 -  For Windows
 
-    <!--list-separator-->
 
     -  Change listening ports
 
@@ -81,14 +78,12 @@ Climbing over the Great Firewall is my life.
         `socks-port` 配置项, 再添加上 `mixed-port` 节, 这样修改就会失效. 我们直接增加 `port` 或
         `socks-port` 配置即可, 不要删除 `mixed-port`.
 
-    <!--list-separator-->
 
     -  TUN mode
 
         -   [TUN 模式 | Clash for Windows](https://docs.cfw.lbyczf.com/contents/tun.html)
         -   可以用来实现透明代理
 
-<!--list-separator-->
 
 -  ClashX
 
@@ -141,7 +136,6 @@ ss-local -s c27s2.jamjams.net -p 63968 -m aes-256-gcm -k GARtpLWnrL -l 2345
 
 #### Issues {#issues}
 
-<!--list-separator-->
 
 -  移动 4G 无法联网
 
@@ -160,7 +154,7 @@ ss-local -s c27s2.jamjams.net -p 63968 -m aes-256-gcm -k GARtpLWnrL -l 2345
 
 #### Logs {#logs}
 
-<span class="timestamp-wrapper"><span class="timestamp">[2019-10-31 Thu]</span></span>: 试了一下, 直接 `yay -S tor`, 然后 `systemctl start tor` 即
+`[2019-10-31 Thu]`: 试了一下, 直接 `yay -S tor`, 然后 `systemctl start tor` 即
 可. 不过浏览器设置 `socks5://127.0.0.1:9050` 无法访问. 看了网上的文章后发现国
 内需要配置代理才能访问. 本来是想测试 Tor 翻墙的可能性, 不能翻的话就算了, 有空
 再配置来看看暗网是什么样的.
@@ -195,39 +189,33 @@ iptables).
 
 -   [神一样的工具们 · Project V 官方网站](https://www.v2ray.com/awesome/tools.html)
 
-<!--list-separator-->
 
 -  v2rayA
 
     -   [GitHub - v2rayA/v2rayA: A Linux web GUI client of Project V which supports V2...](https://github.com/v2rayA/v2rayA)
 
-<!--list-separator-->
 
 -  V2RayU
 
     -   [GitHub - yanue/V2rayU: V2rayU,基于v2ray核心的mac版客户端...](https://github.com/yanue/V2rayU)
-    -   <span class="timestamp-wrapper"><span class="timestamp">[2022-06-05 Sun]</span></span>: 仓库已清空
+    -   `[2022-06-05 Sun]`: 仓库已清空
 
-    <!--listend-->
 
     ```sh
     brew cask install v2rayu
     ```
 
-<!--list-separator-->
 
 -  Kitsunebi
 
-<!--list-separator-->
 
 -  Qv2ray
 
-<!--list-separator-->
 
 -  Leaf
 
     -   [GitHub - eycorsican/leaf: A versatile and efficient proxy framework with nice...](https://github.com/eycorsican/leaf)
-    -   <span class="timestamp-wrapper"><span class="timestamp">[2022-06-05 Sun]</span></span>: 配置 tun 模式并转发到本地的 Clash 端口上, 但是有问题, 终端会显示
+    -   `[2022-06-05 Sun]`: 配置 tun 模式并转发到本地的 Clash 端口上, 但是有问题, 终端会显示
         `tcp full`, 同样的 URL 会发多次请求 (应该是请求失败了), 所以放弃了.
 
 

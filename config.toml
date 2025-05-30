@@ -62,3 +62,6 @@ anonymizeIP = true # 是否匿名化用户 IP
 
 [markup.highlight]
 noClasses = false
+
+[markup.goldmark.extensions.extras.superscript]
+enable = true

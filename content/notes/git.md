@@ -74,7 +74,6 @@ git config core.autocrlf input
 -   [gitmoji | An emoji guide for your commit messages](https://gitmoji.dev/)
 -   [GitHub - carloscuesta/gitmoji-cli: A gitmoji interactive command line tool fo...](https://github.com/carloscuesta/gitmoji-cli)
 
-<!--listend-->
 
 ```sh
 npm i -g gitmoji-cli
@@ -93,7 +92,7 @@ npm i -g gitmoji-cli
 
 ### Diffs contain control sequences in magit {#diffs-contain-control-sequences-in-magit}
 
-Because you set `color.ui` to `always`[^fn:2]<sup>, </sup>[^fn:3]. Just set it to `true`, and this is
+Because you set `color.ui` to `always`[^fn:2]^,^[^fn:3]. Just set it to `true`, and this is
 the Git's default option.
 
 
@@ -110,7 +109,6 @@ Reference[^fn:4]:
 4.  `git rebase --continue`
 5.  Repeat step 3 and step 4
 
-<!--listend-->
 
 ```sh
 git commit --amend --author="John Doe <john@doe.org>"
@@ -276,7 +274,6 @@ git config --global https.proxy https://127.0.0.1:1080
 1.  修改 SSH 配置文件，加入如下内容
 2.  然后就可以愉快的提交了
 
-<!--listend-->
 
 ```text
 Host gitlab.com
